@@ -1,21 +1,18 @@
 """
-Q&A Generator — uses Azure OpenAI (gpt-4o-mini) to extract Q&A pairs from text chunks.
+Q&A Generator — uses Google Gemini to extract Q&A pairs from text chunks.
 """
 
 import json
 import re
 import uuid
-from openai import AzureOpenAI
+from google import genai
+from google.genai import types
 from src.config import settings
 from src.document_processor import Chunk
 
-_client = AzureOpenAI(
-    api_key=settings.prompt_subscription_key,
-    api_version=settings.api_version,
-    azure_endpoint=settings.prompt_generation_endpoint,
-)
+_client = genai.Client(api_key=settings.gemini_api_key)
 
-GPT_DEPLOYMENT = "gpt-4o-mini"
+GEMINI_MODEL = "gemini-2.5-flash"
 
 QA_PROMPT = """You are an expert at reading documents and creating FAQ question-answer pairs.
 
@@ -40,13 +37,13 @@ Text chunk:
 """
 
 
-def _call_gpt(messages: list, temperature: float = 1.0) -> str:
-    response = _client.chat.completions.create(
-        model=GPT_DEPLOYMENT,
-        messages=messages,
-        temperature=temperature,
+def _call_gemini(prompt: str, temperature: float = 1.0) -> str:
+    response = _client.models.generate_content(
+        model=GEMINI_MODEL,
+        contents=prompt,
+        config=types.GenerateContentConfig(temperature=temperature),
     )
-    return response.choices[0].message.content.strip()
+    return response.text.strip()
 
 
 def _extract_json(text: str) -> dict:
@@ -59,7 +56,7 @@ def _extract_json(text: str) -> dict:
 
 def generate_qa_from_chunk(chunk: Chunk) -> list[dict]:
     prompt = QA_PROMPT.format(chunk=chunk.text)
-    raw = _call_gpt([{"role": "user", "content": prompt}])
+    raw = _call_gemini(prompt)
     parsed = _extract_json(raw)
     qa_list = parsed.get("qa_pairs", [])
 

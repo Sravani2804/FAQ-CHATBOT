@@ -1,6 +1,6 @@
 """
 Chat logic — loads Q&A from extracted JSON files, finds relevant matches
-via keyword scoring, then calls Azure GPT-4o-mini to generate an answer.
+via keyword scoring, then calls Google Gemini to generate an answer.
 
 No vector DB needed — works directly off the admin portal's saved Q&A files.
 """
@@ -9,17 +9,13 @@ import json
 import re
 from pathlib import Path
 
-from openai import AzureOpenAI
+from google import genai
 from src.config import settings
 
 ROOT   = Path(__file__).parent.parent
 QA_DIR = ROOT / "data" / "extracted_qa"
 
-_client = AzureOpenAI(
-    api_key=settings.prompt_subscription_key,
-    api_version=settings.api_version,
-    azure_endpoint=settings.prompt_generation_endpoint,
-)
+_client = genai.Client(api_key=settings.gemini_api_key)
 
 SYSTEM_PROMPT = """You are a helpful customer support chatbot.
 Answer the user's question based ONLY on the FAQ context provided below.
@@ -95,13 +91,9 @@ def answer_question(question: str) -> str:
         f"Q: {f['question']}\nA: {f['answer']}" for f in relevant
     )
 
-    response = _client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": f"Context:\n{context}\n\nQuestion: {question}"},
-        ],
-        temperature=1.0,
-        max_completion_tokens=512,
+    prompt = f"{SYSTEM_PROMPT}\n\nContext:\n{context}\n\nQuestion: {question}"
+    response = _client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=prompt,
     )
-    return response.choices[0].message.content.strip()
+    return response.text.strip()

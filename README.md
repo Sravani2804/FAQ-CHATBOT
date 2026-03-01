@@ -84,9 +84,7 @@ pip install -r requirements.txt
 Create a `.env` file in the project root:
 
 ```env
-PROMPT_GENERATION_ENDPOINT=https://your-resource.openai.azure.com/
-API_VERSION=2024-02-01
-PROMPT_SUBSCRIPTION_KEY=your-azure-key
+gemini_api_key=''
 ```
 
 ---
