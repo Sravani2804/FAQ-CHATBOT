@@ -6,5 +6,13 @@
     "uploaded_by": "admin",
     "chunks": 5,
     "qa_count": 15
+  },
+  {
+    "filename": "Sample_FAQ_Online_Learning_Platform.docx",
+    "stem": "Sample_FAQ_Online_Learning_Platform",
+    "uploaded_at": "2026-03-01T05:12:02.477078+00:00",
+    "uploaded_by": "admin",
+    "chunks": 5,
+    "qa_count": 16
   }
 ]
