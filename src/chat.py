@@ -5,15 +5,11 @@ via keyword scoring, then calls Google Gemini to generate an answer.
 No vector DB needed — works directly off the admin portal's saved Q&A files.
 """
 
-import json
 import re
-from pathlib import Path
 
 from google import genai
 from src.config import settings
-
-ROOT   = Path(__file__).parent.parent
-QA_DIR = ROOT / "data" / "extracted_qa"
+from src.database import faqs_col
 
 _client = genai.Client(api_key=settings.gemini_api_key)
 
@@ -28,16 +24,10 @@ Be concise, friendly, and accurate. Never make up information."""
 # Load Q&A
 # ---------------------------------------------------------------------------
 
-def load_all_qa() -> list[dict]:
-    """Load all Q&A pairs from every file saved by the admin portal."""
-    qa: list[dict] = []
-    for f in sorted(QA_DIR.glob("*.json")):
-        try:
-            with open(f) as fh:
-                qa.extend(json.load(fh))
-        except Exception:
-            pass
-    return qa
+def load_all_qa(user_id: str | None = None) -> list[dict]:
+    """Load Q&A pairs from MongoDB, optionally filtered by user_id."""
+    query = {"user_id": user_id} if user_id else {}
+    return list(faqs_col.find(query, {"_id": 0, "stem": 0, "user_id": 0}))
 
 
 # ---------------------------------------------------------------------------
@@ -69,9 +59,9 @@ def find_relevant(question: str, all_qa: list[dict], top_k: int = 4) -> list[dic
 # Answer generation
 # ---------------------------------------------------------------------------
 
-def answer_question(question: str) -> str:
-    """Full pipeline: load Q&A → find relevant → generate GPT answer."""
-    all_qa = load_all_qa()
+def answer_question(question: str, user_id: str | None = None) -> str:
+    """Full pipeline: load Q&A → find relevant → generate Gemini answer."""
+    all_qa = load_all_qa(user_id=user_id)
 
     if not all_qa:
         return (
