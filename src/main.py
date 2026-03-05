@@ -16,15 +16,17 @@ Endpoints:
 """
 
 from contextlib import asynccontextmanager
+import os
 from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from pydantic import BaseModel
 
 from src.chat import answer_question
+from src.config import settings
 from src.database import faqs_col, registry_col, users_col
 
 _DEFAULT_USERS = [
@@ -49,7 +51,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-WIDGET_PATH = Path(__file__).parent.parent / "public" / "widget.js"
+_PUBLIC = Path(__file__).parent.parent / "public"
+WIDGET_PATH = _PUBLIC / "widget.js"
+
+
+# ---------------------------------------------------------------------------
+# Marketing page  (GET /)
+# ---------------------------------------------------------------------------
+
+@app.get("/", response_class=HTMLResponse, include_in_schema=False)
+def marketing_page():
+    html = (_PUBLIC / "index.html").read_text()
+    return html.replace("https://your-domain.com", os.getenv("API_BASE_URL"))
 
 
 # ---------------------------------------------------------------------------
